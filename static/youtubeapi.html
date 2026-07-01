@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>仙人開発部門 - YouTube APIプロキシ</title>
+    <style>
+        /* --- デザインシステム & 変数 --- */
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --header-bg: #2d2d2d;
+            --sidebar-bg: #f1f3f5;
+            --border-color: #dee2e6;
+            --accent-color: #228be6;
+            --overlay-bg: rgba(0, 0, 0, 0.4);
+            --transition-speed: 0.3s;
+            --code-bg: #f1f3f5;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #1a1a1a;
+                --text-color: #e0e0e0;
+                --header-bg: #151515;
+                --sidebar-bg: #252525;
+                --border-color: #404040;
+                --accent-color: #4dabf7;
+                --overlay-bg: rgba(0, 0, 0, 0.6);
+                --code-bg: #2d2d2d;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* --- ハンバーガーボタン (三本線 -> ×) --- */
+        .menu-trigger span,
+        .menu-trigger::before,
+        .menu-trigger::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: #ffffff;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .menu-trigger::before { top: 0; }
+        .menu-trigger span { top: 11px; }
+        .menu-trigger::after { bottom: 0; }
+
+        .menu-trigger.active::before { transform: translateY(11px) rotate(-45deg); }
+        .menu-trigger.active span { opacity: 0; }
+        .menu-trigger.active::after { transform: translateY(-11px) rotate(45deg); }
+
+        /* --- 全体レイアウト --- */
+        .wrapper {
+            display: flex;
+            margin-top: 60px;
+            min-height: calc(100vh - 60px);
+        }
+
+        /* --- サイドバー共通スタイル --- */
+        sidebar {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            width: 260px;
+            height: calc(100vh - 60px);
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            padding: 20px;
+            z-index: 900;
+            transform: translateX(-100%);
+            transition: transform var(--transition-speed) ease;
+        }
+
+        body.sidebar-open sidebar {
+            transform: translateX(0);
+        }
+
+        sidebar h2 {
+            font-size: 1rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-color);
+            opacity: 0.8;
+        }
+
+        sidebar ul { list-style: none; }
+        sidebar ul li { margin-bottom: 8px; }
+        sidebar ul li a {
+            color: var(--text-color);
+            text-decoration: none;
+            display: block;
+            padding: 6px 10px;
+            border-radius: 4px;
+            transition: background var(--transition-speed);
+        }
+
+        sidebar ul li a:hover {
+            background-color: var(--border-color);
+            color: var(--accent-color);
+        }
+
+        /* --- メインコンテンツ --- */
+        main {
+            flex-grow: 1;
+            padding: 30px;
+            max-width: 800px;
+            margin-left: 0;
+            transition: margin-left var(--transition-speed) ease;
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        @media (min-width: 768px) {
+            body.sidebar-open main {
+                margin-left: 260px;
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        main h1 {
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        main h2 {
+            margin: 25px 0 10px;
+            font-size: 1.4rem;
+            border-left: 4px solid var(--accent-color);
+            padding-left: 10px;
+        }
+
+        main p { margin-bottom: 15px; }
+        
+        main ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        code {
+            background-color: var(--code-bg);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        /* --- オーバーレイ --- */
+        .overlay {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            width: 100vw;
+            height: calc(100vh - 60px);
+            background-color: var(--overlay-bg);
+            z-index: 850;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity var(--transition-speed) ease, visibility var(--transition-speed) ease;
+        }
+
+        body.sidebar-open .overlay {
+            opacity: 1;
+            visibility: visible;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="header-container"></div>
+
+    <div class="overlay" id="overlay"></div>
+
+    <div class="wrapper">
+        <div id="sidebar-container"></div>
+
+        <main id="mainContent">
+            <h1>YouTube (Invidious) API プロキシの概要</h1>
+            <p>提供されたJavaScriptコードは、オープンソースのYouTubeフロントエンドである<strong>Invidious</strong>のAPI群を踏み台（プロキシ）にして、YouTubeのデータを安全かつ高速に取得するための<strong>Edge Runtime用APIサーバー</strong>のプログラムです。</p>
+            
+            <h2>主な機能と特徴</h2>
+            <ul>
+                <li><strong>爆速レスポンス（レース勝負）</strong>：<code>Promise.any</code> を使い、登録された10箇所のサーバー（インスタンス）へ同時にリクエストを送信。もっとも早く正常なデータを返した優秀なサーバーの応答を瞬時に採用します。</li>
+                <li><strong>高い安定性と冗長化</strong>：特定のインスタンスがダウンしていたり、YouTube側の規制（ボットチャレンジ等）に引っかかってHTMLを返してきたりした場合、自動的にそれを検知して除外し、生きている別のサーバーのデータを採用します。</li>
+                <li><strong>リクエスト制限（セキュリティ）</strong>：正規表現 <code>RE_TARGET</code> により、動画詳細、コメント、検索、チャンネル情報、プレイリスト、トレンド、人気動画など、システムに必要な特定のJSONデータAPIのみを中継するよう制限されています。</li>
+                <li><strong>CORS対応</strong>：Webブラウザ上のフロントエンドアプリから直接このAPIを叩けるよう、CORSヘッダー（<code>Access-Control-Allow-Origin: *</code>）が適切に付与されています。</li>
+            </ul>
+
+            <h2>技術仕様</h2>
+            <ul>
+                <li><strong>動作環境</strong>：Vercel Edge Functions や Cloudflare Workers などの <code>Edge Runtime</code> に最適化されています。</li>
+                <li><strong>タイムアウト</strong>：5秒（5000ms）以内に反応のない遅いインスタンスは自動で通信を遮断（Abort）します。</li>
+            </ul>
+        </main>
+    </div>
+
+    <script>
+        // 非同期で外部HTML部品（レイアウト）を読み込む関数
+        async function loadLayout() {
+            try {
+                const headerRes = await fetch('/static/layout/header.html');
+                document.getElementById('header-container').innerHTML = await headerRes.text();
+
+                const sidebarRes = await fetch('/static/layout/sidebar.html');
+                document.getElementById('sidebar-container').innerHTML = await sidebarRes.text();
+
+                // 読み込み完了後にイベントリスナーを設定
+                initSidebarEngine();
+            } catch (err) {
+                console.error("レイアウトファイルの読み込みに失敗しました:", err);
+            }
+        }
+
+        function initSidebarEngine() {
+            const menuTrigger = document.getElementById('menuTrigger');
+            const overlay = document.getElementById('overlay');
+            const body = document.body;
+
+            function toggleSidebar() {
+                menuTrigger.classList.toggle('active');
+                body.classList.toggle('sidebar-open');
+            }
+
+            menuTrigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleSidebar();
+            });
+
+            overlay.addEventListener('click', () => {
+                if (body.classList.contains('sidebar-open')) {
+                    toggleSidebar();
+                }
+            });
+        }
+
+        // ページロード時に実行
+        window.addEventListener('DOMContentLoaded', loadLayout);
+    </script>
+</body>
+</html>
