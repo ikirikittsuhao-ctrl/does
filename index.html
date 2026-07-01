@@ -9,7 +9,7 @@
         :root {
             --bg-color: #ffffff;
             --text-color: #333333;
-            --header-bg: #2d2d2d; /* ヘッダー背景をダーク系にして白文字ロゴを映えさせています */
+            --header-bg: #2d2d2d;
             --sidebar-bg: #f1f3f5;
             --border-color: #dee2e6;
             --accent-color: #228be6;
@@ -54,7 +54,7 @@
             left: 0;
             width: 100%;
             height: 2px;
-            background-color: #ffffff; /* ロゴに合わせてボタン線も白に統一 */
+            background-color: #ffffff;
             transition: all var(--transition-speed) ease;
         }
 
@@ -84,11 +84,10 @@
             border-right: 1px solid var(--border-color);
             padding: 20px;
             z-index: 900;
-            transform: translateX(-100%); /* 初期状態は閉じる */
+            transform: translateX(-100%);
             transition: transform var(--transition-speed) ease;
         }
 
-        /* サイドバーが開いているときの状態 */
         body.sidebar-open sidebar {
             transform: translateX(0);
         }
@@ -128,7 +127,6 @@
             animation: fadeIn 0.4s ease-out forwards;
         }
 
-        /* PC環境でサイドバーが開いた時、コンテンツを右に押し出す（レスポンシブ対応） */
         @media (min-width: 768px) {
             body.sidebar-open main {
                 margin-left: 260px;
@@ -154,6 +152,24 @@
         }
 
         main p { margin-bottom: 15px; }
+
+        main ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        main ul li {
+            margin-bottom: 5px;
+        }
+
+        main a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+
+        main a:hover {
+            text-decoration: underline;
+        }
 
         /* --- スマホ用・PC用共通オーバーレイ --- */
         .overlay {
@@ -185,15 +201,29 @@
         <div id="sidebar-container"></div>
 
         <main id="mainContent">
-            <h1>横スライド式Wikiテンプレート</h1>
-            <p>スマホ表示の際、メニューボタンを押すとサイドバーが**左側から横にスライド**して表示されるように変更しました。</p>
-            <p>サイドバーが開いているときは、右側の暗くなったエリア（メインコンテンツ部分）をタップすることで、サイドバーが左側へ引っ込み、安全に閉じることができます。</p>
-            <p>サイドメニューの「<strong>YouTube APIプロキシ</strong>」から、追加されたAPIプロキシコードの概要を確認できます。</p>
+            <h1>仙人開発部門</h1>
+            
+            <h2>開発理念</h2>
+            <p>学生の自由を最も大切にし、縛られることのない柔軟な発想と技術の追求を行っています。</p>
+
+            <h2>開発者紹介</h2>
+            <ul>
+                <li><strong>仙人@sugar(main)</strong></li>
+                <li><strong>ようつべこ</strong></li>
+                <li><strong>をにょし</strong></li>
+                <li><strong>んょし</strong></li>
+            </ul>
+
+            <h2>SNS・コミュニティ紹介</h2>
+            <ul>
+                <li><strong>Classroom:</strong> kf6hp4j6</li>
+                <li><strong>Padlet:</strong> <a href="https://padlet.com/sennin_sugar/proxy-n0g1c0jl2ak3grc5" target="_blank" rel="noopener noreferrer">https://padlet.com/sennin_sugar/proxy-n0g1c0jl2ak3grc5</a></li>
+                <li><strong>Chatwork:</strong> <a href="https://www.chatwork.com/g/h9kd79fc9757i5" target="_blank" rel="noopener noreferrer">https://www.chatwork.com/g/h9kd79fc9757i5</a></li>
+            </ul>
         </main>
     </div>
 
     <script>
-        // 非同期で外部HTML部品（レイアウト）を読み込む関数
         async function loadLayout() {
             try {
                 const headerRes = await fetch('/static/layout/header.html');
@@ -202,7 +232,6 @@
                 const sidebarRes = await fetch('/static/layout/sidebar.html');
                 document.getElementById('sidebar-container').innerHTML = await sidebarRes.text();
 
-                // 読み込み完了後にイベントリスナーを設定
                 initSidebarEngine();
             } catch (err) {
                 console.error("レイアウトファイルの読み込みに失敗しました:", err);
@@ -231,7 +260,6 @@
             });
         }
 
-        // ページロード時に実行
         window.addEventListener('DOMContentLoaded', loadLayout);
     </script>
 </body>
