@@ -146,6 +146,12 @@
             padding-bottom: 10px;
         }
 
+        @media (max-width: 480px) {
+            main h1 { font-size: 1.5rem; }
+            main h2 { font-size: 1.2rem; }
+            main { padding: 20px 15px; }
+        }
+
         main h2 {
             margin: 25px 0 10px;
             font-size: 1.4rem;
@@ -170,7 +176,7 @@
             font-size: 0.9em;
         }
 
-        /* --- コピペ用ルート＆コードボックス --- */
+        /* --- コピペ用ルート＆コードボックス (スマホ最適化) --- */
         .api-route-box {
             background-color: var(--box-bg);
             border: 1px solid var(--border-color);
@@ -180,13 +186,15 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 10px;
         }
 
         .api-route-text {
             font-family: monospace;
             font-size: 0.9rem;
-            word-break: break-all;
+            word-break: break-all; /* 長いURLを途中で自動折り返し */
             color: var(--text-color);
+            line-height: 1.4;
         }
 
         .copy-btn {
@@ -198,12 +206,26 @@
             font-size: 0.8rem;
             cursor: pointer;
             white-space: nowrap;
-            margin-left: 10px;
             transition: opacity 0.2s;
         }
 
         .copy-btn:hover {
             opacity: 0.85;
+        }
+
+        /* スマートフォンなどの狭い画面用のスタイル調整 */
+        @media (max-width: 600px) {
+            .api-route-box {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 12px;
+            }
+            .copy-btn {
+                align-self: flex-end;
+                width: auto;
+                padding: 5px 15px;
+                font-size: 0.85rem;
+            }
         }
 
         pre {
