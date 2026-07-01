@@ -16,6 +16,7 @@
             --overlay-bg: rgba(0, 0, 0, 0.4);
             --transition-speed: 0.3s;
             --code-bg: #f1f3f5;
+            --box-bg: #f8f9fa;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -28,6 +29,7 @@
                 --accent-color: #4dabf7;
                 --overlay-bg: rgba(0, 0, 0, 0.6);
                 --code-bg: #2d2d2d;
+                --box-bg: #2d2d2d;
             }
         }
 
@@ -121,7 +123,7 @@
         main {
             flex-grow: 1;
             padding: 30px;
-            max-width: 800px;
+            max-width: 900px;
             margin-left: 0;
             transition: margin-left var(--transition-speed) ease;
             animation: fadeIn 0.4s ease-out forwards;
@@ -158,12 +160,61 @@
             margin-bottom: 15px;
         }
 
+        main ul li { margin-bottom: 6px; }
+
         code {
             background-color: var(--code-bg);
             padding: 2px 6px;
             border-radius: 4px;
             font-family: monospace;
             font-size: 0.9em;
+        }
+
+        /* --- コピペ用ルート＆コードボックス --- */
+        .api-route-box {
+            background-color: var(--box-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .api-route-text {
+            font-family: monospace;
+            font-size: 0.9rem;
+            word-break: break-all;
+            color: var(--text-color);
+        }
+
+        .copy-btn {
+            background-color: var(--accent-color);
+            color: #ffffff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            white-space: nowrap;
+            margin-left: 10px;
+            transition: opacity 0.2s;
+        }
+
+        .copy-btn:hover {
+            opacity: 0.85;
+        }
+
+        pre {
+            background-color: var(--box-bg);
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: monospace;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
         }
 
         /* --- オーバーレイ --- */
@@ -196,26 +247,102 @@
         <div id="sidebar-container"></div>
 
         <main id="mainContent">
-            <h1>YouTube (Invidious) API プロキシの概要</h1>
-            <p>提供されたJavaScriptコードは、オープンソースのYouTubeフロントエンドである<strong>Invidious</strong>のAPI群を踏み台（プロキシ）にして、YouTubeのデータを安全かつ高速に取得するための<strong>Edge Runtime用APIサーバー</strong>のプログラムです。</p>
-            
-            <h2>主な機能と特徴</h2>
+            <h1>YouTube (Invidious) API プロキシ仕様書</h1>
+            <p>本ページは、仙人開発部門が設計したEdge Runtime（Vercel Edge Functions）上で動作する高性能YouTubeプロキシサーバーの技術リファレンスです。10箇所のグローバルインスタンスへの同時並行リクエスト（<code>Promise.any</code>）により、安定して超高速なJSONデータを返却します。</p>
+
+            <h2>基本情報</h2>
             <ul>
-                <li><strong>爆速レスポンス（レース勝負）</strong>：<code>Promise.any</code> を使い、登録された10箇所のサーバー（インスタンス）へ同時にリクエストを送信。もっとも早く正常なデータを返した優秀なサーバーの応答を瞬時に採用します。</li>
-                <li><strong>高い安定性と冗長化</strong>：特定のインスタンスがダウンしていたり、YouTube側の規制（ボットチャレンジ等）に引っかかってHTMLを返してきたりした場合、自動的にそれを検知して除外し、生きている別のサーバーのデータを採用します。</li>
-                <li><strong>リクエスト制限（セキュリティ）</strong>：正規表現 <code>RE_TARGET</code> により、動画詳細、コメント、検索、チャンネル情報、プレイリスト、トレンド、人気動画など、システムに必要な特定のJSONデータAPIのみを中継するよう制限されています。</li>
-                <li><strong>CORS対応</strong>：Webブラウザ上のフロントエンドアプリから直接このAPIを叩けるよう、CORSヘッダー（<code>Access-Control-Allow-Origin: *</code>）が適切に付与されています。</li>
+                <li><strong>ベースURL:</strong> <code>https://uow-bakend.vercel.app</code></li>
+                <li><strong>認証/CORS:</strong> <code>Access-Control-Allow-Origin: *</code> (CORS制限なし。フロントエンドから直叩き可能)</li>
+                <li><strong>タイムアウト制限:</strong> 各バックエンド通信は最大 5000ms で自動遮断されます。</li>
             </ul>
 
-            <h2>技術仕様</h2>
-            <ul>
-                <li><strong>動作環境</strong>：Vercel Edge Functions や Cloudflare Workers などの <code>Edge Runtime</code> に最適化されています。</li>
-                <li><strong>タイムアウト</strong>：5秒（5000ms）以内に反応のない遅いインスタンスは自動で通信を遮断（Abort）します。</li>
-            </ul>
+            <h2>利用可能ルート一覧（コピペ用）</h2>
+            <p>正規表現 <code>RE_TARGET</code> により、中継を許可されているエンドポイント一覧です。右側のボタンからURL一式をコピーできます。</p>
+
+            <h3>1. 動画情報の取得</h3>
+            <div class="api-route-box">
+                <span class="api-route-text" id="route-video">https://uow-bakend.vercel.app/api/v1/videos/動画ID</span>
+                <button class="copy-btn" onclick="copyText('route-video')">コピー</button>
+            </div>
+
+            <h3>2. 動画コメントの取得</h3>
+            <div class="api-route-box">
+                <span class="api-route-text" id="route-comments">https://uow-bakend.vercel.app/api/v1/comments/動画ID</span>
+                <button class="copy-btn" onclick="copyText('route-comments')">コピー</button>
+            </div>
+
+            <h3>3. 動画検索</h3>
+            <div class="api-route-box">
+                <span class="api-route-text" id="route-search">https://uow-bakend.vercel.app/api/v1/search?q=検索ワード</span>
+                <button class="copy-btn" onclick="copyText('route-search')">コピー</button>
+            </div>
+
+            <h3>4. チャンネル情報 / チャンネル動画一覧</h3>
+            <div class="api-route-box">
+                <span class="api-route-text" id="route-channel">https://uow-bakend.vercel.app/api/v1/channels/チャンネルID</span>
+                <button class="copy-btn" onclick="copyText('route-channel')">コピー</button>
+            </div>
+            <div class="api-route-box">
+                <span class="api-route-text" id="route-channel-videos">https://uow-bakend.vercel.app/api/v1/channels/videos/チャンネルID</span>
+                <button class="copy-btn" onclick="copyText('route-channel-videos')">コピー</button>
+            </div>
+
+            <h3>5. プレイリスト / 急上昇 / 人気動画</h3>
+            <div class="api-route-box">
+                <span class="api-route-text" id="route-playlist">https://uow-bakend.vercel.app/api/v1/playlists/プレイリストID</span>
+                <button class="copy-btn" onclick="copyText('route-playlist')">コピー</button>
+            </div>
+            <div class="api-route-box">
+                <span class="api-route-text" id="route-trending">https://uow-bakend.vercel.app/api/v1/trending</span>
+                <button class="copy-btn" onclick="copyText('route-trending')">コピー</button>
+            </div>
+            <div class="api-route-box">
+                <span class="api-route-text" id="route-popular">https://uow-bakend.vercel.app/api/v1/popular</span>
+                <button class="copy-btn" onclick="copyText('route-popular')">コピー</button>
+            </div>
+
+            <h2>レスポンス形式</h2>
+
+            <h3>正常レスポンス (200 OK)</h3>
+            <p>対象インスタンスから正常にパース可能なピュアJSONが返された場合、以下のヘッダーと共にそのまま透過して出力されます。</p>
+            <pre>
+Headers:
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, POST, OPTIONS
+  Content-Type: application/json; charset=utf-8</pre>
+
+            <h3>ターゲット外エラー (404 Not Found)</h3>
+            <p>正規表現 <code>RE_TARGET</code> にマッチしない無効なパスへアクセスした際のレスポンスです。</p>
+            <pre>{
+  "error": "Not Found",
+  "message": "This proxy only supports specific Invidious JSON APIs."
+}</pre>
+
+            <h3>全インスタンス障害エラー (502 Bad Gateway)</h3>
+            <p>登録されている10箇所すべてのInvidiousインスタンスがダウン、タイムアウト、またはYouTube側のBot Challenge規制（HTML返却）に直面した場合のレスポンスです。</p>
+            <pre>{
+  "error": "All Invidious instances failed or returned Bot Challenges.",
+  "details": [
+    "Instance https://invidious.ritoge.com returned Bot Challenge (HTML).",
+    "Instance https://yt.omada.cafe returned status 500",
+    "signal is aborted"
+  ]
+}</pre>
         </main>
     </div>
 
     <script>
+        // テキストコピー用関数
+        function copyText(elementId) {
+            const text = document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('URLをクリップボードにコピーしました！');
+            }).catch(err => {
+                console.error('コピーに失敗しました: ', err);
+            });
+        }
+
         // 非同期で外部HTML部品（レイアウト）を読み込む関数
         async function loadLayout() {
             try {
